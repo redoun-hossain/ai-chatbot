@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!-- saved from url=(0064)https://3000-i3vgw5idh8ia8obgs0k49.e2b.app/standalone/index.html -->
+<html lang="en" data-theme="dark"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Knowledge RAG Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="./index_files/css2" rel="stylesheet">
+  <link rel="stylesheet" href="./index_files/style.css">
+  <!-- Marked.js for Markdown -->
+  <script src="./index_files/marked.min.js.download"></script>
+  <!-- Highlight.js for code highlighting -->
+  <link rel="stylesheet" href="./index_files/github-dark.min.css">
+  <script src="./index_files/highlight.min.js.download"></script>
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar expanded">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <div class="logo" id="logo-btn" title="Expand sidebar">
+          <div class="logo-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"></path>
+              <circle cx="9" cy="13" r="1" fill="white"></circle>
+              <circle cx="15" cy="13" r="1" fill="white"></circle>
+              <path d="M9 17h6"></path>
+            </svg>
+          </div>
+          <div class="expand-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M9 3v18"></path>
+              <path d="M14 9l3 3-3 3"></path>
+            </svg>
+          </div>
+        </div>
+        
+        <button class="search-header-btn" id="search-header-btn" title="Search chats">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+        </button>
+        
+        <button class="collapse-btn" id="collapse-btn" title="Collapse sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M9 3v18"></path>
+            <path d="M14 9l-3 3 3 3"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Search Input (expanded only) -->
+      <div class="search-container expanded-only">
+        <div class="search-input-wrapper">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Search chats...">
+          <button class="search-clear-btn" id="search-clear-btn" style="display: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- New Chat Button -->
+      <div class="new-chat-container">
+        <button class="new-chat-btn" id="new-chat-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          <span class="expanded-only">New Chat</span>
+        </button>
+      </div>
+
+      <!-- Collapsed Search Icon -->
+      <div class="collapsed-search collapsed-only">
+        <button class="collapsed-search-btn" id="collapsed-search-btn" title="Search chats">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Recent Chats Label -->
+      <div class="chats-label expanded-only">
+        <span id="chats-label-text">Recent Chats</span>
+      </div>
+
+      <!-- Conversations List -->
+      <div class="conversations-list" id="conversations-list">
+      <div class="empty-conversations">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <p>No conversations yet</p>
+      </div>
+    </div>
+
+      <!-- Bottom Actions -->
+      <div class="sidebar-footer">
+        <button class="footer-btn" id="theme-toggle-btn">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span class="expanded-only">Light Mode</span>
+        </button>
+        <button class="footer-btn danger" id="clear-history-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span class="expanded-only">Clear History</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Main Header -->
+      <header class="main-header">
+        <h1 class="header-title">AI Knowledge RAG Assistant</h1>
+        <div class="online-status">
+          <div class="status-dot"></div>
+          <span>Online</span>
+        </div>
+      </header>
+
+      <!-- Chat Container -->
+      <div class="chat-container" id="chat-container">
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-logo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"></path>
+              <circle cx="9" cy="13" r="1.5" fill="white"></circle>
+              <circle cx="15" cy="13" r="1.5" fill="white"></circle>
+              <path d="M9 17c.8.8 2 1.3 3 1.3s2.2-.5 3-1.3"></path>
+            </svg>
+          </div>
+          <h2 class="welcome-title">AI Knowledge RAG Assistant</h2>
+          <p class="welcome-subtitle">Ask questions from your knowledge base.</p>
+          <div class="welcome-badges">
+            <span class="badge">🔒 Secure</span>
+            <span class="badge">⚡ Fast</span>
+            <span class="badge">🎯 Accurate</span>
+          </div>
+          <div class="welcome-input-container">
+            <div class="input-wrapper welcome-input-wrapper">
+              <textarea id="welcome-input" class="message-input" placeholder="Ask anything about your knowledge base..." rows="1"></textarea>
+              <button class="send-btn" id="welcome-send-btn" disabled="">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13"></path>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                </svg>
+              </button>
+            </div>
+            <p class="input-hint">Press Enter to send • Shift + Enter for new line</p>
+          </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="messages-container" id="messages-container">
+          <div class="messages-list" id="messages-list">
+            <!-- Messages will be rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area (shown after first message) -->
+      <div class="input-area" id="input-area">
+        <div class="input-area-inner">
+          <div class="input-wrapper">
+            <textarea id="message-input" class="message-input" placeholder="Ask anything about your knowledge base..." rows="1"></textarea>
+            <button class="send-btn" id="send-btn" disabled="">
+              <svg class="send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13"></path>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+              </svg>
+              <svg class="loading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="input-hint">Press Enter to send • Shift + Enter for new line</p>
+        </div>
+      </div>
+
+      <!-- Scroll to Bottom Button -->
+      <button class="scroll-bottom-btn" id="scroll-bottom-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12l7 7 7-7"></path>
+        </svg>
+      </button>
+    </main>
+  </div>
+
+  <!-- Mobile Overlay -->
+  <div class="mobile-overlay" id="mobile-overlay"></div>
+
+  <script src="./index_files/app.js.download"></script>
+
+
+</body></html>
