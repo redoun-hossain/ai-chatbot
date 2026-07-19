@@ -24,7 +24,7 @@ const CONFIG = {
   // n8n Webhook URL (when API_MODE = 'direct')
   // Test:       https://arfinsami178.app.n8n.cloud/webhook-test/ai-chatbot-rag-agent
   // Production: https://arfinsami178.app.n8n.cloud/webhook/ai-chatbot-rag-agent
-  WEBHOOK_URL: 'https://arfinsami178.app.n8n.cloud/webhook/ai-chatbot-rag-agent',
+  WEBHOOK_URL: 'https://n8n.srv1106977.hstgr.cloud/webhook/ai-chatbot-rag-agent',
 
   // Local storage keys
   STORAGE_KEYS: {
