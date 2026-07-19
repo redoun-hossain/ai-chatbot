@@ -1,46 +1,61 @@
-/* ===========================
-   STATE
-   =========================== */
+// ========== DOM ELEMENTS ==========
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const sidebar = $('.sidebar');
+const btnCollapse = $('.btn-collapse');
+const btnExpand = $('.btn-expand');
+const btnHamburger = $('.btn-hamburger');
+const mobileOverlay = $('.mobile-overlay');
+const btnNewChat = $('.btn-new-chat');
+const searchInput = $('#search-input');
+const btnSearchClear = $('.btn-search-clear');
+const chatLabel = $('.chat-label');
+const chatList = $('.chat-list');
+const btnTheme = $('.btn-theme');
+const btnClearAll = $('.btn-clear-all');
+
+const headerCenter = $('.header-center');
+const welcome = $('.welcome');
+const chatView = $('.chat-view');
+const messagesContainer = $('.messages');
+const messagesInner = $('.messages-inner');
+const btnScrollBottom = $('.btn-scroll-bottom');
+
+// Composers
+const welcomeTextarea = $('#welcome-textarea');
+const welcomeSend = $('#welcome-send');
+const chatTextarea = $('#chat-textarea');
+const chatSend = $('#chat-send');
+
+// ========== STATE ==========
 let chats = JSON.parse(localStorage.getItem('rag_chats') || '[]');
-let allMessages = JSON.parse(localStorage.getItem('rag_msgs') || '{}');
+let messages = JSON.parse(localStorage.getItem('rag_msgs') || '{}');
 let activeChat = null;
 let isLoading = false;
-let sidebarOpen = localStorage.getItem('rag_sb') !== 'false';
 
-/* ===========================
-   DOM ELEMENTS
-   =========================== */
-const $ = (id) => document.getElementById(id);
-const sidebar = $('sidebar');
-const logoBtn = $('logoBtn');
-const collapseBtn = $('collapseBtn');
-const newChatBtn = $('newChatBtn');
-const searchInput = $('searchInput');
-const searchClear = $('searchClear');
-const chatLabel = $('chatLabel');
-const chatList = $('chatList');
-const emptyState = $('emptyState');
-const themeBtn = $('themeBtn');
-const clearBtn = $('clearBtn');
-const overlay = $('overlay');
-const hamburgerBtn = $('hamburgerBtn');
-const headerCenter = $('headerCenter');
-const welcomeScreen = $('welcomeScreen');
-const chatView = $('chatView');
-const messagesEl = $('messages');
-const scrollBottomBtn = $('scrollBottomBtn');
-const welcomeInput = $('welcomeInput');
-const welcomeSendBtn = $('welcomeSendBtn');
-const chatInput = $('chatInput');
-const chatSendBtn = $('chatSendBtn');
+// ========== INIT ==========
+function init() {
+    loadTheme();
+    loadSidebarState();
+    renderChatList();
+    setupEventListeners();
+    setupTextareas();
+    renderVersion();
+}
 
-/* ===========================
-   THEME
-   =========================== */
-function initTheme() {
-    const saved = localStorage.getItem('rag_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcons(saved);
+function renderVersion() {
+    const el = document.getElementById('sidebar-version');
+    if (el && CONFIG.VERSION) {
+        el.textContent = CONFIG.VERSION;
+    }
+}
+
+// ========== THEME ==========
+function loadTheme() {
+    const theme = localStorage.getItem('rag_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon();
 }
 
 function toggleTheme() {
@@ -48,629 +63,524 @@ function toggleTheme() {
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('rag_theme', next);
-    updateThemeIcons(next);
+    updateThemeIcon();
 }
 
-function updateThemeIcons(theme) {
-    const sun = themeBtn.querySelector('.theme-icon-sun');
-    const moon = themeBtn.querySelector('.theme-icon-moon');
-    if (theme === 'dark') {
-        sun.style.display = '';
-        moon.style.display = 'none';
-    } else {
-        sun.style.display = 'none';
-        moon.style.display = '';
-    }
+function updateThemeIcon() {
+    const theme = document.documentElement.getAttribute('data-theme');
+    const sunIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const moonIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    btnTheme.querySelector('.theme-icon').innerHTML = theme === 'dark' ? sunIcon : moonIcon;
 }
 
-/* ===========================
-   SIDEBAR TOGGLE
-   =========================== */
-function initSidebar() {
-    if (!sidebarOpen) sidebar.classList.add('collapsed');
+// ========== SIDEBAR ==========
+function loadSidebarState() {
+    const collapsed = localStorage.getItem('rag_sb') === 'true';
+    if (collapsed) sidebar.classList.add('collapsed');
 }
 
 function toggleSidebar() {
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('visible');
-    } else {
-        sidebar.classList.toggle('collapsed');
-        sidebarOpen = !sidebar.classList.contains('collapsed');
-        localStorage.setItem('rag_sb', sidebarOpen);
-    }
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('rag_sb', sidebar.classList.contains('collapsed'));
+}
+
+function openMobileSidebar() {
+    sidebar.classList.add('mobile-open');
+    mobileOverlay.classList.add('visible');
 }
 
 function closeMobileSidebar() {
     sidebar.classList.remove('mobile-open');
-    overlay.classList.remove('visible');
+    mobileOverlay.classList.remove('visible');
 }
 
-/* ===========================
-   CHAT MANAGEMENT
-   =========================== */
+// ========== CHAT MANAGEMENT ==========
 function saveChats() {
     localStorage.setItem('rag_chats', JSON.stringify(chats));
 }
 
 function saveMessages() {
-    localStorage.setItem('rag_msgs', JSON.stringify(allMessages));
+    localStorage.setItem('rag_msgs', JSON.stringify(messages));
 }
 
-function createChat() {
-    // Reuse empty active chat
-    if (activeChat) {
-        const msgs = allMessages[activeChat] || [];
-        if (msgs.length === 0) return;
+function generateId() {
+    return 'c_' + Date.now();
+}
+
+function createNewChat() {
+    // If current active chat has no messages, reuse it
+    if (activeChat && (!messages[activeChat] || messages[activeChat].length === 0)) {
+        return;
     }
-    // Reuse latest empty chat
+
+    // If latest chat has no messages, select it
     if (chats.length > 0) {
         const latest = chats[0];
-        const msgs = allMessages[latest.id] || [];
-        if (msgs.length === 0) {
+        if (!messages[latest.id] || messages[latest.id].length === 0) {
             selectChat(latest.id);
             return;
         }
     }
 
-    const chat = {
-        id: 'c_' + Date.now(),
-        title: 'New Chat',
-        ts: Date.now()
-    };
+    const id = generateId();
+    const chat = { id, title: 'New Chat', ts: Date.now() };
     chats.unshift(chat);
-    allMessages[chat.id] = [];
+    messages[id] = [];
     saveChats();
     saveMessages();
-    selectChat(chat.id);
-    renderChatList();
-}
-
-function selectChat(id) {
-    activeChat = id;
-    const msgs = allMessages[id] || [];
-    if (msgs.length === 0) {
-        showWelcome();
-    } else {
-        showChat();
-        renderMessages();
-    }
-    updateHeaderCenter();
+    selectChat(id);
     renderChatList();
     closeMobileSidebar();
 }
 
-function deleteChat(id) {
+function selectChat(id) {
+    activeChat = id;
+    const chat = chats.find(c => c.id === id);
+
+    // Show chat view
+    welcome.style.display = 'none';
+    chatView.classList.add('active');
+
+    // Update header
+    headerCenter.textContent = chat ? chat.title : '';
+
+    // Render messages
+    renderMessages();
+    renderChatList();
+
+    // Focus textarea
+    setTimeout(() => chatTextarea.focus(), 100);
+}
+
+function deleteChat(id, e) {
+    if (e) e.stopPropagation();
     chats = chats.filter(c => c.id !== id);
-    delete allMessages[id];
+    delete messages[id];
     saveChats();
     saveMessages();
 
     if (activeChat === id) {
         activeChat = null;
-        showWelcome();
-        updateHeaderCenter();
+        welcome.style.display = '';
+        chatView.classList.remove('active');
+        headerCenter.textContent = '';
     }
+
     renderChatList();
 }
 
 function clearAllChats() {
-    if (!confirm('Are you sure you want to clear all chat history?')) return;
+    if (!confirm('Clear all chats? This cannot be undone.')) return;
     chats = [];
-    allMessages = {};
+    messages = {};
     activeChat = null;
     saveChats();
     saveMessages();
-    showWelcome();
-    updateHeaderCenter();
+    welcome.style.display = '';
+    chatView.classList.remove('active');
+    headerCenter.textContent = '';
     renderChatList();
 }
 
-/* ===========================
-   HEADER CENTER
-   =========================== */
-function updateHeaderCenter() {
-    if (activeChat) {
-        const chat = chats.find(c => c.id === activeChat);
-        const msgs = allMessages[activeChat] || [];
-        if (chat && msgs.length > 0) {
-            headerCenter.textContent = chat.title;
-            return;
-        }
-    }
-    headerCenter.textContent = '';
+function setAutoTitle(chatId, text) {
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat || chat.title !== 'New Chat') return;
+    let title = text.trim().replace(/\n/g, ' ');
+    if (title.length > 45) title = title.substring(0, 45) + '…';
+    chat.title = title;
+    saveChats();
+    headerCenter.textContent = title;
+    renderChatList();
 }
 
-/* ===========================
-   RENDER CHAT LIST
-   =========================== */
+// ========== RENDER CHAT LIST ==========
 function renderChatList() {
     const query = searchInput.value.trim().toLowerCase();
-    let filtered = chats;
-    if (query) {
-        filtered = chats.filter(c => c.title.toLowerCase().includes(query));
-        chatLabel.textContent = 'Results';
-    } else {
-        chatLabel.textContent = 'Recent';
-    }
+    const filtered = query
+        ? chats.filter(c => c.title.toLowerCase().includes(query))
+        : chats;
 
-    // Remove old items (keep empty state)
-    chatList.querySelectorAll('.chat-item').forEach(el => el.remove());
+    chatLabel.textContent = query ? 'Results' : 'Recent';
 
     if (filtered.length === 0) {
-        emptyState.style.display = '';
-        if (query) {
-            emptyState.innerHTML = `
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.25">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <span>No results</span>`;
-        } else {
-            emptyState.innerHTML = `
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.25">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span>No chats yet</span>`;
-        }
+        const emptyIcon = query
+            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+        const emptyText = query ? 'No results' : 'No chats yet';
+        chatList.innerHTML = `<div class="chat-empty">${emptyIcon}<span>${emptyText}</span></div>`;
         return;
     }
 
-    emptyState.style.display = 'none';
+    chatList.innerHTML = filtered.map(c => `
+        <div class="chat-item ${c.id === activeChat ? 'active' : ''}" data-id="${c.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="chat-item-title">${escapeHtml(c.title)}</span>
+            <button class="btn-delete" title="Delete chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+        </div>
+    `).join('');
 
-    filtered.forEach(chat => {
-        const div = document.createElement('div');
-        div.className = 'chat-item' + (chat.id === activeChat ? ' active' : '');
-        div.innerHTML = `
-            <svg class="chat-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span class="chat-item-title">${escapeHTML(chat.title)}</span>
-            <button class="chat-item-delete" title="Delete chat">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-            </button>`;
-
-        div.addEventListener('click', (e) => {
-            if (e.target.closest('.chat-item-delete')) return;
-            selectChat(chat.id);
+    // Attach events
+    chatList.querySelectorAll('.chat-item').forEach(el => {
+        el.addEventListener('click', () => {
+            selectChat(el.dataset.id);
+            closeMobileSidebar();
         });
-
-        div.querySelector('.chat-item-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteChat(chat.id);
-        });
-
-        chatList.insertBefore(div, emptyState);
+        el.querySelector('.btn-delete').addEventListener('click', (e) => deleteChat(el.dataset.id, e));
     });
 }
 
-/* ===========================
-   SEARCH
-   =========================== */
-function handleSearch() {
-    const val = searchInput.value.trim();
-    searchClear.classList.toggle('visible', val.length > 0);
-    renderChatList();
-}
-
-function clearSearch() {
-    searchInput.value = '';
-    searchClear.classList.remove('visible');
-    renderChatList();
-}
-
-/* ===========================
-   SHOW/HIDE VIEWS
-   =========================== */
-function showWelcome() {
-    welcomeScreen.style.display = '';
-    chatView.style.display = 'none';
-    welcomeInput.value = '';
-    welcomeInput.style.height = 'auto';
-    updateSendBtn(welcomeInput, welcomeSendBtn);
-}
-
-function showChat() {
-    welcomeScreen.style.display = 'none';
-    chatView.style.display = '';
-    chatInput.value = '';
-    chatInput.style.height = 'auto';
-    updateSendBtn(chatInput, chatSendBtn);
-}
-
-/* ===========================
-   RENDER MESSAGES
-   =========================== */
+// ========== RENDER MESSAGES ==========
 function renderMessages() {
     if (!activeChat) return;
-    const msgs = allMessages[activeChat] || [];
-    messagesEl.innerHTML = '';
+    const msgs = messages[activeChat] || [];
+    messagesInner.innerHTML = msgs.map(m => createMessageHTML(m)).join('');
 
-    msgs.forEach(msg => {
-        messagesEl.appendChild(createMessageEl(msg));
+    // Attach copy buttons
+    messagesInner.querySelectorAll('.btn-copy').forEach(btn => {
+        btn.addEventListener('click', () => copyMessage(btn));
     });
 
     scrollToBottom();
 }
 
-function createMessageEl(msg) {
-    const row = document.createElement('div');
-    row.className = `message-row ${msg.role}`;
-
-    const avatarSVG = msg.role === 'user'
-        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><g transform="translate(3,2)" fill="white"><rect x="2" y="0" width="10" height="2.5" rx="1.25"/><rect x="0.5" y="4" width="13" height="10" rx="2.5"/><circle cx="5" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/><rect x="5" y="12" width="4" height="1.5" rx="0.75"/></g></svg>`;
-
-    const avatarClass = msg.role === 'user' ? 'user-avatar' : 'ai-avatar';
-
-    let contentHTML = '';
-    if (msg.role === 'assistant') {
-        contentHTML = renderMarkdown(msg.content);
-    } else {
-        contentHTML = escapeHTML(msg.content);
+function createMessageHTML(msg) {
+    if (msg.role === 'user') {
+        return `
+            <div class="msg user">
+                <div class="msg-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div class="msg-bubble">
+                    <div class="msg-content">${escapeHtml(msg.content)}</div>
+                    <div class="msg-meta">
+                        <span class="msg-time">${msg.time || ''}</span>
+                    </div>
+                </div>
+            </div>`;
     }
 
-    let sourcesHTML = '';
+    // Assistant
+    const rendered = renderMarkdown(msg.content);
+    let sourcesHtml = '';
     if (msg.sources && msg.sources.length > 0) {
-        sourcesHTML = `
+        const tags = msg.sources.map(s => `
+            <span class="source-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                ${escapeHtml(s)}
+            </span>
+        `).join('');
+        sourcesHtml = `
             <div class="msg-sources">
-                <div class="msg-sources-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span class="msg-sources-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     Sources
-                </div>
-                <div class="msg-sources-list">
-                    ${msg.sources.map(s => `
-                        <span class="source-tag">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                            ${escapeHTML(s)}
-                        </span>
-                    `).join('')}
-                </div>
+                </span>
+                ${tags}
             </div>`;
     }
 
-    let actionsHTML = '';
-    if (msg.role === 'assistant') {
-        actionsHTML = `
-            <div class="msg-actions">
-                <button class="copy-btn" data-content="${escapeAttr(msg.content)}">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    <span>Copy</span>
-                </button>
-                <span class="msg-timestamp">${msg.time || ''}</span>
-            </div>`;
-    } else {
-        actionsHTML = `<div class="msg-actions"><span></span><span class="msg-timestamp">${msg.time || ''}</span></div>`;
-    }
-
-    row.innerHTML = `
-        <div class="msg-avatar ${avatarClass}">${avatarSVG}</div>
-        <div class="msg-bubble">
-            <div class="msg-content">${contentHTML}</div>
-            ${sourcesHTML}
-            ${actionsHTML}
+    return `
+        <div class="msg assistant">
+            <div class="msg-avatar">
+                <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 23h-4a7 7 0 0 1-6.93-4H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+            </div>
+            <div class="msg-bubble">
+                <div class="msg-content">${rendered}${sourcesHtml}</div>
+                <div class="msg-meta">
+                    <button class="btn-copy" data-text="${encodeURIComponent(msg.content)}">
+                        <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <span class="copy-label">Copy</span>
+                    </button>
+                    <span class="msg-time">${msg.time || ''}</span>
+                </div>
+            </div>
         </div>`;
-
-    // Copy button handler
-    const copyBtn = row.querySelector('.copy-btn');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => copyMessage(copyBtn));
-    }
-
-    return row;
 }
 
-/* ===========================
-   COPY MESSAGE
-   =========================== */
+function showTypingIndicator() {
+    const typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.id = 'typing-indicator';
+    typing.innerHTML = `
+        <div class="msg-avatar">
+            <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 23h-4a7 7 0 0 1-6.93-4H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+        </div>
+        <div class="typing-bubble">
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+            <span class="typing-text">Thinking…</span>
+        </div>`;
+    messagesInner.appendChild(typing);
+    scrollToBottom();
+}
+
+function hideTypingIndicator() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+}
+
+// ========== SEND MESSAGE ==========
+async function sendMessage(text) {
+    if (!text.trim() || isLoading) return;
+
+    // Create chat if needed
+    if (!activeChat) {
+        const id = generateId();
+        const chat = { id, title: 'New Chat', ts: Date.now() };
+        chats.unshift(chat);
+        messages[id] = [];
+        saveChats();
+        activeChat = id;
+        welcome.style.display = 'none';
+        chatView.classList.add('active');
+        renderChatList();
+    }
+
+    // Auto title from first message
+    const chatMsgs = messages[activeChat] || [];
+    if (chatMsgs.length === 0) {
+        setAutoTitle(activeChat, text);
+    }
+
+    // Add user message
+    const now = formatTime();
+    const userMsg = { role: 'user', content: text, time: now };
+    if (!messages[activeChat]) messages[activeChat] = [];
+    messages[activeChat].push(userMsg);
+    saveMessages();
+
+    // Render user message
+    messagesInner.insertAdjacentHTML('beforeend', createMessageHTML(userMsg));
+    scrollToBottom();
+
+    // Clear inputs
+    welcomeTextarea.value = '';
+    chatTextarea.value = '';
+    resetTextarea(welcomeTextarea);
+    resetTextarea(chatTextarea);
+    updateSendButtons();
+
+    // Loading state
+    isLoading = true;
+    setLoadingState(true);
+    showTypingIndicator();
+
+    try {
+        const response = await fetch(CONFIG.WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                message: text,
+                sessionId: activeChat
+            })
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const result = Array.isArray(data) ? data[0] : data;
+
+        let answer = '';
+        let sources = [];
+
+        if (typeof result === 'string') {
+            answer = result;
+        } else if (typeof result === 'object' && result !== null) {
+            // Priority order field check
+            for (const field of ['output', 'response', 'text', 'answer', 'message', 'result', 'content']) {
+                if (result[field] && typeof result[field] === 'string') {
+                    answer = result[field];
+                    break;
+                }
+            }
+            // Sources
+            if (result.sources && Array.isArray(result.sources)) {
+                sources = result.sources;
+            } else if (result.sourceDocuments && Array.isArray(result.sourceDocuments)) {
+                sources = result.sourceDocuments.map(d => d.metadata?.source || d.pageContent?.substring(0, 40) || 'Document');
+            }
+        }
+
+        if (!answer) answer = typeof result === 'string' ? result : JSON.stringify(result);
+
+        const aiMsg = { role: 'assistant', content: answer, sources, time: formatTime() };
+        messages[activeChat].push(aiMsg);
+        saveMessages();
+
+        hideTypingIndicator();
+        messagesInner.insertAdjacentHTML('beforeend', createMessageHTML(aiMsg));
+
+        // Attach copy
+        const lastCopy = messagesInner.querySelector('.msg:last-child .btn-copy');
+        if (lastCopy) lastCopy.addEventListener('click', () => copyMessage(lastCopy));
+
+        scrollToBottom();
+
+    } catch (err) {
+        console.error('Webhook error:', err);
+        hideTypingIndicator();
+
+        const errMsg = { role: 'assistant', content: "I couldn't process your request right now. Please try again later.", sources: [], time: formatTime() };
+        messages[activeChat].push(errMsg);
+        saveMessages();
+
+        messagesInner.insertAdjacentHTML('beforeend', createMessageHTML(errMsg));
+        scrollToBottom();
+    } finally {
+        isLoading = false;
+        setLoadingState(false);
+    }
+}
+
+function setLoadingState(loading) {
+    const btns = [welcomeSend, chatSend];
+    const areas = [welcomeTextarea, chatTextarea];
+
+    btns.forEach(btn => {
+        if (loading) {
+            btn.classList.add('loading');
+            btn.classList.remove('enabled');
+            btn.classList.add('disabled');
+        } else {
+            btn.classList.remove('loading');
+            updateSendButtons();
+        }
+    });
+
+    areas.forEach(ta => {
+        ta.disabled = loading;
+    });
+}
+
+// ========== COPY ==========
 function copyMessage(btn) {
-    const content = btn.getAttribute('data-content');
-    navigator.clipboard.writeText(content).then(() => {
-        btn.classList.add('copied');
-        btn.querySelector('span').textContent = 'Copied!';
-        btn.querySelector('svg').innerHTML = `<polyline points="20 6 9 17 4 12"/>`;
+    const text = decodeURIComponent(btn.dataset.text);
+    navigator.clipboard.writeText(text).then(() => {
+        const label = btn.querySelector('.copy-label');
+        const icon = btn.querySelector('.copy-icon');
+        label.textContent = 'Copied!';
+        icon.innerHTML = `<polyline points="20 6 9 17 4 12"/>`;
         setTimeout(() => {
-            btn.classList.remove('copied');
-            btn.querySelector('span').textContent = 'Copy';
-            btn.querySelector('svg').innerHTML = `<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`;
+            label.textContent = 'Copy';
+            icon.innerHTML = `<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`;
         }, 2000);
     });
 }
 
-/* ===========================
-   MARKDOWN
-   =========================== */
+// ========== MARKDOWN ==========
 function renderMarkdown(text) {
-    if (!text) return '';
-    try {
+    if (typeof marked !== 'undefined') {
         marked.setOptions({
             highlight: function(code, lang) {
-                if (lang && hljs.getLanguage(lang)) {
+                if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
                     return hljs.highlight(code, { language: lang }).value;
                 }
-                return hljs.highlightAuto(code).value;
+                return typeof hljs !== 'undefined' ? hljs.highlightAuto(code).value : code;
             },
             breaks: true,
             gfm: true
         });
         return marked.parse(text);
-    } catch (e) {
-        return escapeHTML(text);
     }
+    return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
-/* ===========================
-   TYPING INDICATOR
-   =========================== */
-function showTyping() {
-    const row = document.createElement('div');
-    row.className = 'typing-row';
-    row.id = 'typingIndicator';
-    row.innerHTML = `
-        <div class="msg-avatar ai-avatar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><g transform="translate(3,2)" fill="white"><rect x="2" y="0" width="10" height="2.5" rx="1.25"/><rect x="0.5" y="4" width="13" height="10" rx="2.5"/><circle cx="5" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/><rect x="5" y="12" width="4" height="1.5" rx="0.75"/></g></svg>
-        </div>
-        <div class="typing-bubble">
-            <div class="typing-dots">
-                <span class="typing-dot"></span>
-                <span class="typing-dot"></span>
-                <span class="typing-dot"></span>
-            </div>
-            <span class="typing-text">Thinking…</span>
-        </div>`;
-    messagesEl.appendChild(row);
-    scrollToBottom();
-}
-
-function hideTyping() {
-    const el = document.getElementById('typingIndicator');
-    if (el) el.remove();
-}
-
-/* ===========================
-   SEND MESSAGE
-   =========================== */
-async function sendMessage(text) {
-    if (!text.trim() || isLoading) return;
-
-    // Ensure active chat exists
-    if (!activeChat) {
-        const chat = {
-            id: 'c_' + Date.now(),
-            title: 'New Chat',
-            ts: Date.now()
-        };
-        chats.unshift(chat);
-        allMessages[chat.id] = [];
-        activeChat = chat.id;
-        saveChats();
-        saveMessages();
-    }
-
-    // Auto title from first message
-    const msgs = allMessages[activeChat] || [];
-    if (msgs.length === 0) {
-        const chat = chats.find(c => c.id === activeChat);
-        if (chat) {
-            chat.title = text.length > 45 ? text.substring(0, 45) + '…' : text;
-            saveChats();
-        }
-    }
-
-    // Add user message
-    const userMsg = {
-        role: 'user',
-        content: text,
-        time: formatTime()
-    };
-    allMessages[activeChat].push(userMsg);
-    saveMessages();
-
-    // Switch to chat view
-    showChat();
-    renderMessages();
-    renderChatList();
-    updateHeaderCenter();
-
-    // Loading state
-    setLoading(true);
-    showTyping();
-
-    try {
-        const response = await fetch(CONFIG.WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text })
-        });
-
-        if (!response.ok) throw new Error('Network error');
-
-        const data = await response.json();
-
-        // Parse response
-        let answer = '';
-        let sources = [];
-
-        // Handle array response
-        const result = Array.isArray(data) ? data[0] : data;
-
-        // Extract answer (priority order)
-        const fields = ['output', 'response', 'text', 'answer', 'message', 'result', 'content'];
-        for (const field of fields) {
-            if (result[field] && typeof result[field] === 'string') {
-                answer = result[field];
-                break;
-            }
-        }
-
-        if (!answer) answer = JSON.stringify(result);
-
-        // Extract sources
-        if (result.sources) sources = Array.isArray(result.sources) ? result.sources : [result.sources];
-        if (result.sourceDocuments) {
-            sources = result.sourceDocuments.map(d => d.metadata?.source || d.pageContent?.substring(0, 50) || 'Document');
-        }
-
-        // Add assistant message
-        const aiMsg = {
-            role: 'assistant',
-            content: answer,
-            sources: sources,
-            time: formatTime()
-        };
-        allMessages[activeChat].push(aiMsg);
-        saveMessages();
-
-    } catch (error) {
-        console.error('Webhook error:', error);
-        const errorMsg = {
-            role: 'assistant',
-            content: "I couldn't process your request right now. Please try again later.",
-            sources: [],
-            time: formatTime()
-        };
-        allMessages[activeChat].push(errorMsg);
-        saveMessages();
-    }
-
-    hideTyping();
-    setLoading(false);
-    renderMessages();
-}
-
-/* ===========================
-   LOADING STATE
-   =========================== */
-function setLoading(state) {
-    isLoading = state;
-
-    [welcomeInput, chatInput].forEach(input => {
-        if (input) input.disabled = state;
-    });
-
-    [welcomeSendBtn, chatSendBtn].forEach(btn => {
-        if (btn) {
-            btn.disabled = state;
-            btn.querySelector('.send-icon').style.display = state ? 'none' : '';
-            btn.querySelector('.spinner-icon').style.display = state ? '' : 'none';
-        }
-    });
-}
-
-/* ===========================
-   TEXTAREA AUTO-GROW
-   =========================== */
-function autoGrow(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 144) + 'px';
-}
-
-function updateSendBtn(textarea, btn) {
-    btn.disabled = !textarea.value.trim() || isLoading;
-}
-
-function setupTextarea(textarea, sendBtn) {
-    textarea.addEventListener('input', () => {
-        autoGrow(textarea);
-        updateSendBtn(textarea, sendBtn);
-    });
-
-    textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (textarea.value.trim() && !isLoading) {
-                const text = textarea.value.trim();
-                textarea.value = '';
-                autoGrow(textarea);
-                updateSendBtn(textarea, sendBtn);
-                sendMessage(text);
-            }
-        }
-    });
-
-    sendBtn.addEventListener('click', () => {
-        if (textarea.value.trim() && !isLoading) {
-            const text = textarea.value.trim();
-            textarea.value = '';
-            autoGrow(textarea);
-            updateSendBtn(textarea, sendBtn);
-            sendMessage(text);
-        }
-    });
-}
-
-/* ===========================
-   SCROLL
-   =========================== */
-function scrollToBottom() {
-    requestAnimationFrame(() => {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    });
-}
-
-function handleScroll() {
-    const diff = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
-    scrollBottomBtn.style.display = diff > 120 ? '' : 'none';
-}
-
-/* ===========================
-   UTILITIES
-   =========================== */
-function formatTime() {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function escapeHTML(str) {
+// ========== HELPERS ==========
+function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
-function escapeAttr(str) {
-    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function formatTime() {
+    return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-/* ===========================
-   EVENT LISTENERS
-   =========================== */
-logoBtn.addEventListener('click', toggleSidebar);
-collapseBtn.addEventListener('click', toggleSidebar);
-newChatBtn.addEventListener('click', createChat);
-searchInput.addEventListener('input', handleSearch);
-searchClear.addEventListener('click', clearSearch);
-themeBtn.addEventListener('click', toggleTheme);
-clearBtn.addEventListener('click', clearAllChats);
-overlay.addEventListener('click', closeMobileSidebar);
-hamburgerBtn.addEventListener('click', toggleSidebar);
-scrollBottomBtn.addEventListener('click', scrollToBottom);
-messagesEl.addEventListener('scroll', handleScroll);
-
-setupTextarea(welcomeInput, welcomeSendBtn);
-setupTextarea(chatInput, chatSendBtn);
-
-/* ===========================
-   INIT
-   =========================== */
-function init() {
-    initTheme();
-    initSidebar();
-    renderChatList();
-
-    // Restore last active chat
-    if (chats.length > 0) {
-        const lastChat = chats[0];
-        const msgs = allMessages[lastChat.id] || [];
-        if (msgs.length > 0) {
-            selectChat(lastChat.id);
-        } else {
-            showWelcome();
-        }
-    } else {
-        showWelcome();
-    }
+function scrollToBottom() {
+    setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 50);
 }
 
-init();
+// ========== TEXTAREA AUTO-GROW ==========
+function setupTextareas() {
+    [welcomeTextarea, chatTextarea].forEach(ta => {
+        ta.addEventListener('input', () => {
+            autoGrow(ta);
+            updateSendButtons();
+        });
+        ta.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(ta.value);
+            }
+        });
+    });
+}
+
+function autoGrow(ta) {
+    ta.style.height = '24px';
+    ta.style.height = Math.min(ta.scrollHeight, 144) + 'px';
+}
+
+function resetTextarea(ta) {
+    ta.style.height = '24px';
+}
+
+function updateSendButtons() {
+    const wVal = welcomeTextarea.value.trim();
+    const cVal = chatTextarea.value.trim();
+
+    welcomeSend.classList.toggle('enabled', wVal.length > 0 && !isLoading);
+    welcomeSend.classList.toggle('disabled', wVal.length === 0 || isLoading);
+
+    chatSend.classList.toggle('enabled', cVal.length > 0 && !isLoading);
+    chatSend.classList.toggle('disabled', cVal.length === 0 || isLoading);
+}
+
+// ========== SCROLL BUTTON ==========
+function setupScrollButton() {
+    messagesContainer.addEventListener('scroll', () => {
+        const diff = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight;
+        btnScrollBottom.classList.toggle('visible', diff > 120);
+    });
+    btnScrollBottom.addEventListener('click', scrollToBottom);
+}
+
+// ========== SEARCH ==========
+function setupSearch() {
+    searchInput.addEventListener('input', () => {
+        btnSearchClear.classList.toggle('visible', searchInput.value.length > 0);
+        renderChatList();
+    });
+    btnSearchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        btnSearchClear.classList.remove('visible');
+        renderChatList();
+    });
+}
+
+// ========== EVENT LISTENERS ==========
+function setupEventListeners() {
+    btnCollapse.addEventListener('click', toggleSidebar);
+    btnExpand.addEventListener('click', toggleSidebar);
+    btnHamburger.addEventListener('click', openMobileSidebar);
+    mobileOverlay.addEventListener('click', closeMobileSidebar);
+    btnNewChat.addEventListener('click', createNewChat);
+    btnTheme.addEventListener('click', toggleTheme);
+    btnClearAll.addEventListener('click', clearAllChats);
+
+    welcomeSend.addEventListener('click', () => sendMessage(welcomeTextarea.value));
+    chatSend.addEventListener('click', () => sendMessage(chatTextarea.value));
+
+    setupSearch();
+    setupScrollButton();
+    updateSendButtons();
+}
+
+// ========== START ==========
+document.addEventListener('DOMContentLoaded', init);

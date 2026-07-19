@@ -1,30 +1,53 @@
 # AI Knowledge RAG Assistant
 
-A professional AI chatbot interface built with pure HTML, CSS, and JavaScript.
-Connects to n8n RAG Agent via webhook.
+A static front-end chat interface that connects to an n8n RAG Agent via webhook. Built with pure HTML, CSS, and JavaScript — no frameworks, no build tools.
 
 ## Features
-- Dark/Light theme
-- Collapsible sidebar
-- Chat history (LocalStorage)
-- Markdown rendering
-- Code syntax highlighting
-- Mobile responsive
-- No framework, no build tools
 
-## Setup
-1. Clone this repository
-2. Edit `js/config.js` and set your webhook URL
-3. Open `index.html` in browser or deploy to GitHub Pages
-
-## Deploy to GitHub Pages
-1. Go to repository Settings → Pages
-2. Source: Deploy from a branch
-3. Branch: main, folder: / (root)
-4. Save
+- 🤖 AI-powered Q&A from your knowledge base
+- 🌓 Dark/Light theme with persistence
+- 💬 Multi-conversation management
+- 🔍 Chat search
+- 📱 Fully responsive (mobile-friendly)
+- 📋 Markdown rendering with syntax highlighting
+- 💾 LocalStorage persistence
 
 ## Tech Stack
-- HTML5, CSS3, JavaScript (ES6+)
-- marked.js (Markdown)
-- highlight.js (Code highlighting)
-- Google Fonts (Inter)
+
+- **Frontend:** HTML, CSS, JavaScript (vanilla)
+- **Backend:** n8n RAG Agent (webhook)
+- **Libraries (CDN):** marked.js, highlight.js, Google Fonts (Inter)
+- **Hosting:** GitHub Pages
+
+## Setup
+
+1. Clone this repository.
+2. Edit `js/config.js` to set your n8n webhook URLs.
+3. Set `USE_TEST: true` for development or `USE_TEST: false` for production.
+4. Open `index.html` in a browser or deploy to GitHub Pages.
+
+## File Structure
+
+```
+ai-chatbot/
+├── index.html
+├── css/
+│   └── style.css
+├── js/
+│   ├── config.js
+│   └── main.js
+├── README.md
+├── .gitignore
+└── favicon.ico
+```
+
+## Configuration
+
+In `js/config.js`:
+- `WEBHOOK_TEST_URL` — n8n test webhook endpoint
+- `WEBHOOK_PROD_URL` — n8n production webhook endpoint
+- `USE_TEST` — toggle between test and production
+
+## License
+
+MIT
