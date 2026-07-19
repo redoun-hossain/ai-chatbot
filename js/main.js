@@ -5,9 +5,11 @@
 // ── State ──
 let chats = JSON.parse(localStorage.getItem('rag_chats') || '[]');
 let messages = JSON.parse(localStorage.getItem('rag_msgs') || '{}');
+let pinnedChats = JSON.parse(localStorage.getItem('rag_pinned') || '[]');
 let activeChat = null;
 let isLoading = false;
 let sidebarCollapsed = localStorage.getItem('rag_sb') === 'true';
+let listenersBound = false;
 
 // ── DOM ──
 const $ = (s, p = document) => p.querySelector(s);
@@ -42,7 +44,10 @@ function init() {
     if (chats.length > 0) {
         selectChat(chats[0].id);
     }
-    setupListeners();
+    if (!listenersBound) {
+        setupListeners();
+        listenersBound = true;
+    }
 }
 
 // ── Version ──
@@ -92,6 +97,47 @@ function closeMobileSidebar() {
     sidebarOverlay.classList.remove('visible');
 }
 
+// ── Sidebar Views ──
+let currentView = 'history'; // 'history', 'pinned', 'search'
+
+function showHistory() {
+    currentView = 'history';
+    searchInput.value = '';
+    searchClear.classList.remove('visible');
+    renderChatList();
+    updateSidebarIcons();
+}
+
+function showPinned() {
+    currentView = 'pinned';
+    renderChatList();
+    updateSidebarIcons();
+}
+
+function showSearchView() {
+    currentView = 'search';
+    searchInput.focus();
+    updateSidebarIcons();
+}
+
+function updateSidebarIcons() {
+    $$('.sidebar-icon-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = $(`.sidebar-icon-btn[data-view="${currentView}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+// ── Pin/Unpin ──
+function togglePin(id, e) {
+    if (e) e.stopPropagation();
+    if (pinnedChats.includes(id)) {
+        pinnedChats = pinnedChats.filter(p => p !== id);
+    } else {
+        pinnedChats.push(id);
+    }
+    localStorage.setItem('rag_pinned', JSON.stringify(pinnedChats));
+    renderChatList();
+}
+
 // ── Chat Management ──
 function saveChats() {
     localStorage.setItem('rag_chats', JSON.stringify(chats));
@@ -104,7 +150,10 @@ function genId() {
 
 function newChat() {
     // If current active chat is empty, keep it
-    if (activeChat && (!messages[activeChat] || messages[activeChat].length === 0)) return;
+    if (activeChat && (!messages[activeChat] || messages[activeChat].length === 0)) {
+        closeMobileSidebar();
+        return;
+    }
     // If latest chat is empty, select it
     if (chats.length > 0 && (!messages[chats[0].id] || messages[chats[0].id].length === 0)) {
         selectChat(chats[0].id);
@@ -144,6 +193,8 @@ function deleteChat(id, e) {
     e.stopPropagation();
     chats = chats.filter(c => c.id !== id);
     delete messages[id];
+    pinnedChats = pinnedChats.filter(p => p !== id);
+    localStorage.setItem('rag_pinned', JSON.stringify(pinnedChats));
     saveChats();
     renderChatList();
 
@@ -160,7 +211,9 @@ function clearAll() {
     if (!confirm('Delete all chats?')) return;
     chats = [];
     messages = {};
+    pinnedChats = [];
     activeChat = null;
+    localStorage.setItem('rag_pinned', JSON.stringify(pinnedChats));
     saveChats();
     renderChatList();
     welcomeScreen.classList.remove('hidden');
@@ -171,25 +224,40 @@ function clearAll() {
 // ── Render Chat List ──
 function renderChatList() {
     const query = searchInput.value.trim().toLowerCase();
-    const filtered = query
-        ? chats.filter(c => c.title.toLowerCase().includes(query))
-        : chats;
+    let filtered;
+    let label;
 
-    chatLabel.textContent = query ? 'Results' : 'Recent';
+    if (currentView === 'pinned') {
+        filtered = chats.filter(c => pinnedChats.includes(c.id));
+        label = 'Pinned';
+    } else if (query) {
+        filtered = chats.filter(c => c.title.toLowerCase().includes(query));
+        label = 'Results';
+    } else {
+        filtered = chats;
+        label = 'Recent';
+    }
+
+    chatLabel.textContent = label;
 
     if (filtered.length === 0) {
         const isSearch = !!query;
+        const isPinned = currentView === 'pinned';
         chatList.innerHTML = `
             <div class="chat-empty">
                 ${isSearch
                     ? `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>No results</span>`
+                    : isPinned
+                    ? `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg><span>No pinned chats</span>`
                     : `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No chats yet</span>`
                 }
             </div>`;
         return;
     }
 
-    chatList.innerHTML = filtered.map(c => `
+    chatList.innerHTML = filtered.map(c => {
+        const isPinned = pinnedChats.includes(c.id);
+        return `
         <div class="chat-item ${c.id === activeChat ? 'active' : ''}" onclick="selectChat('${c.id}')">
             <span class="chat-item-icon">
                 <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -197,13 +265,18 @@ function renderChatList() {
                 </svg>
             </span>
             <span class="chat-item-title">${escHtml(c.title)}</span>
+            <button class="chat-item-pin ${isPinned ? 'pinned' : ''}" onclick="togglePin('${c.id}', event)" title="${isPinned ? 'Unpin' : 'Pin'}">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="${isPinned ? 'currentColor' : 'none'}">
+                    <path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+                </svg>
+            </button>
             <button class="chat-item-delete" onclick="deleteChat('${c.id}', event)" title="Delete">
                 <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
             </button>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // ── Render Messages ──
@@ -256,6 +329,8 @@ function createMessageHTML(msg) {
         </div>`;
     }
 
+    const contentStr = (msg.content || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+
     return `
     <div class="message assistant">
         <div class="message-avatar">
@@ -265,7 +340,7 @@ function createMessageHTML(msg) {
             <div class="md-content">${rendered}</div>
             ${sourcesHtml}
             <div class="message-actions">
-                <button class="copy-btn" onclick="copyMessage(this, ${JSON.stringify(msg.content).replace(/"/g, '&quot;')})">
+                <button class="copy-btn" onclick="copyMessage(this, '${contentStr}')">
                     <svg class="copy-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -280,7 +355,8 @@ function createMessageHTML(msg) {
 
 // ── Copy ──
 function copyMessage(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
+    const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+    navigator.clipboard.writeText(decoded).then(() => {
         const span = btn.querySelector('span');
         span.textContent = 'Copied!';
         btn.querySelector('.copy-icon').innerHTML = `<polyline points="20 6 9 17 4 12"/>`;
@@ -467,32 +543,44 @@ function escHtml(str) {
 
 // ── Listeners ──
 function setupListeners() {
-    // Textarea events
-    [welcomeTextarea, chatTextarea].forEach(ta => {
-        ta.addEventListener('input', () => {
-            autoGrow(ta);
-            updateSendButtons();
-        });
-        ta.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage(ta.value);
-            }
-        });
-    });
+    // Textarea events - use named functions to prevent duplicates
+    function handleInput(ta) {
+        autoGrow(ta);
+        updateSendButtons();
+    }
 
-    // Send buttons
-    welcomeSendBtn.addEventListener('click', () => sendMessage(welcomeTextarea.value));
-    chatSendBtn.addEventListener('click', () => sendMessage(chatTextarea.value));
+    function handleKeydown(ta, e) {
+        if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
+            e.preventDefault();
+            const text = ta.value.trim();
+            if (text) sendMessage(text);
+        }
+    }
+
+    welcomeTextarea.addEventListener('input', () => handleInput(welcomeTextarea));
+    chatTextarea.addEventListener('input', () => handleInput(chatTextarea));
+    
+    welcomeTextarea.addEventListener('keydown', (e) => handleKeydown(welcomeTextarea, e));
+    chatTextarea.addEventListener('keydown', (e) => handleKeydown(chatTextarea, e));
+
+    // Send buttons - check loading state
+    welcomeSendBtn.addEventListener('click', () => {
+        if (!isLoading) sendMessage(welcomeTextarea.value);
+    });
+    chatSendBtn.addEventListener('click', () => {
+        if (!isLoading) sendMessage(chatTextarea.value);
+    });
 
     // Search
     searchInput.addEventListener('input', () => {
         searchClear.classList.toggle('visible', searchInput.value.length > 0);
+        currentView = searchInput.value.trim() ? 'search' : 'history';
         renderChatList();
     });
     searchClear.addEventListener('click', () => {
         searchInput.value = '';
         searchClear.classList.remove('visible');
+        currentView = 'history';
         renderChatList();
     });
 
